@@ -33,7 +33,7 @@ public class Client {
 				// Send client string to server
 				OutputStream outToServer = client.getOutputStream();
 				DataOutputStream out = new DataOutputStream(outToServer);
-				out.writeUTF(ClientString + client.getLocalSocketAddress());
+				out.writeUTF(ClientString);
 				InputStream inFromServer = client.getInputStream();
 
 				// Get the echo from server
