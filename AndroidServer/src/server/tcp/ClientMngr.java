@@ -8,12 +8,12 @@ import java.util.Calendar;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Date;
 
-import com.opencsv.CSVWriter;
-
 public class ClientMngr implements Runnable {
 	private final String FILE_DATE_FORMAT = "yyMMdd";
 	private final String FILE_EXTENSION = ".csv";
 	private final String FILE_PATH_DIR = "./data_gps/";
+	private final String CSV_DELIMITER = ",";
+	private final String CSV_LINEEND = "\r\n";
 	private final String CSV_TIME_FORMAT = "yyyyMMdd HH:mm:ss";
 	private final String CSV_HEADER_ID = "Client ID";
 	private final String CSV_HEADER_IP = "IP";
@@ -49,11 +49,11 @@ public class ClientMngr implements Runnable {
 	public int getId() {
 		return this.id;
 	}
-	
+
 	public boolean isRunning() {
 		return this.run;
 	}
-	
+
 	public void run() {
 		String msg;
 		String[] msgSplit;
@@ -106,7 +106,7 @@ public class ClientMngr implements Runnable {
 			System.out.println("ClientMngr::run: " + e.toString());
 			e.printStackTrace();
 		}
-		
+
 		this.run = false;
 		this.clientDisconnected.set(true);
 	}
@@ -124,13 +124,12 @@ public class ClientMngr implements Runnable {
 	public void stop() {
 		this.run = false;
 	}
-	
+
 	private synchronized boolean writeToCsv(int id, String ip, String name, Date time, double lat, double lng) {
 		DateFormat df;
 		Date today;
 		String filePathFull;
 		FileWriter fileWriter;
-		CSVWriter csvWriter;
 		File dir;
 		File file;
 		String[] record;
@@ -152,12 +151,15 @@ public class ClientMngr implements Runnable {
 			if (!(file.exists() && !file.isDirectory())) {
 				file.createNewFile();
 				fileWriter = new FileWriter(filePathFull, true);
-				csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER,
-						CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.RFC4180_LINE_END);
 				record = new String[] { CSV_HEADER_ID, CSV_HEADER_IP, CSV_HEADER_NAME, CSV_HEADER_TIME, CSV_HEADER_LAT,
 						CSV_HEADER_LNG };
-				csvWriter.writeNext(record);
-				csvWriter.close();
+
+				// Append headers
+				for (int i = 0; i < record.length; i++) {
+					fileWriter.append(record[i]);
+					fileWriter.append((i == record.length - 1) ? CSV_LINEEND : CSV_DELIMITER);
+				}
+				fileWriter.close();
 			}
 
 			// Format time stamp of received message
@@ -166,13 +168,14 @@ public class ClientMngr implements Runnable {
 
 			// Append record
 			fileWriter = new FileWriter(filePathFull, true);
-			csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER,
-					CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.RFC4180_LINE_END);
 			record = new String[] { String.valueOf(id), ip, name, timeFormatted, String.valueOf(lat),
 					String.valueOf(lng) };
-			csvWriter.writeNext(record);
+			for (int i = 0; i < record.length; i++) {
+				fileWriter.append(record[i]);
+				fileWriter.append((i == record.length - 1) ? CSV_LINEEND : CSV_DELIMITER);
+			}
+			fileWriter.close();
 
-			csvWriter.close();
 		} catch (Exception e) {
 			System.out.println("ClientMngr::writeToCsv: " + e.toString());
 			e.printStackTrace();
