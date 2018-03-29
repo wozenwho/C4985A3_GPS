@@ -1,6 +1,9 @@
 package test.client;
 
 import java.net.*;
+
+import javax.swing.plaf.SliderUI;
+
 import java.io.*;
 
 public class Client {
@@ -21,25 +24,39 @@ public class Client {
 			Socket client = new Socket(serverName, port); // create socket
 			System.out.println("Successful connection to: " + client.getRemoteSocketAddress());
 
-			while (true) {
+			int i = 0;
+			while (i < 10) {
 				// Get console input
-				BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
-				ClientString = input.readLine();
-				if (ClientString.equals("disconnect")) {
-					client.close();
-					break;
-				}
+				// BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+				// ClientString = input.readLine();
+				// if (ClientString.equals("sayonara")) {
+				// client.close();
+				// break;
+				// }
+
+				ClientString = "122." + i++;
+				ClientString += "/" + ClientString;
 
 				// Send client string to server
 				OutputStream outToServer = client.getOutputStream();
 				DataOutputStream out = new DataOutputStream(outToServer);
 				out.writeUTF(ClientString);
-				InputStream inFromServer = client.getInputStream();
 
-				// Get the echo from server
-				DataInputStream in = new DataInputStream(inFromServer);
-				System.out.println("Server Echo: " + in.readUTF());
+				if (ClientString.equals("mydigits")) {
+					// Get the echo from server
+					InputStream inFromServer = client.getInputStream();
+					DataInputStream in = new DataInputStream(inFromServer);
+					System.out.println("Server Echo: " + in.readUTF());
+				}
+
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
+			
+			client.close();
 		}
 
 		catch (IOException e) {
