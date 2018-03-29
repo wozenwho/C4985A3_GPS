@@ -1,25 +1,31 @@
 package server.tcp;
 
 import java.net.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 import java.io.*;
 
 public class Server implements Runnable {
 	private final int MAX_NUM_CLI = 10000;
+	private final int CLEANER_DELAY = 3000; // milliseconds
 
 	private Thread thrd;
+	private Thread thrdCleaner;
 	private HashMap<Integer, ClientMngr> clientPool;
 	private ServerSocket sockListen;
 	private Random random;
 	private int socketTimeout;
 	private boolean run;
+	private volatile AtomicBoolean clientDisconnected;
 
 	public Server() {
-		random = new Random();
-		clientPool = new HashMap<Integer, ClientMngr>();
-		socketTimeout = -1;
+		this.random = new Random();
+		this.clientPool = new HashMap<Integer, ClientMngr>();
+		this.socketTimeout = -1;
+		this.clientDisconnected = new AtomicBoolean(false);
 	}
 
 	public Boolean createSocket(int port) {
@@ -36,7 +42,7 @@ public class Server implements Runnable {
 		try {
 			this.sockListen.setSoTimeout(millisec);
 			this.socketTimeout = millisec;
-			System.out.println("Socket timeout set: " + this.socketTimeout);
+			System.out.printf(">> Socket timeout set: %d\n", this.socketTimeout);
 		} catch (Exception e) {
 			System.out.println("ConnManager::setTimeout: " + e.toString());
 			return false;
@@ -49,33 +55,32 @@ public class Server implements Runnable {
 		int id;
 		ClientMngr clientMngr;
 
-		run = true;
+		System.out.printf(">> Listening on port: %d\n", this.sockListen.getLocalPort());
 
-		System.out.println("Listening on port: " + sockListen.getLocalPort());
-
-		while (run) {
+		while (this.run) {
 			try {
-				if (clientPool.size() >= MAX_NUM_CLI) {
+				if (this.clientPool.size() >= MAX_NUM_CLI) {
 					continue;
 				}
-				
-				cliSocket = sockListen.accept(); // Accept connection
+
+				cliSocket = this.sockListen.accept(); // Accept connection
 
 				// Generate client ID
-				while (clientPool.containsKey(id = random.nextInt(MAX_NUM_CLI))) {
+				while (this.clientPool.containsKey(id = this.random.nextInt(MAX_NUM_CLI))) {
 				}
 
 				// Create and add client manager for the client
-				clientMngr = new ClientMngr(cliSocket, id);
-				clientPool.put(id, clientMngr);
+				clientMngr = new ClientMngr(cliSocket, id, clientDisconnected);
+				this.clientPool.put(id, clientMngr);
 
 				// Start the client
 				try {
+					System.out.printf(">> Connection accepted (%d clients)\n", this.clientPool.size());
 					clientMngr.start();
 				} catch (Exception e) { // Client failed to start
 					System.out.println("ConnManager::run: " + e.toString());
 					clientMngr.stop(); // Stop the client manager
-					clientPool.remove(id); // remove the client manager
+					this.clientPool.remove(id); // remove the client manager
 				}
 
 			} catch (SocketTimeoutException eSocketTimeout) {
@@ -86,22 +91,63 @@ public class Server implements Runnable {
 			}
 		}
 
+		this.run = false;
+
 		// Disconnect all the clients
-		for (Map.Entry<Integer, ClientMngr> entry : clientPool.entrySet()) {
+		for (Map.Entry<Integer, ClientMngr> entry : this.clientPool.entrySet()) {
 			entry.getValue().stop();
 		}
-		clientPool.clear(); // Clear connection pool
+		this.clientPool.clear(); // Clear connection pool
+
+		System.out.printf(">> Server terminated\n");
 	}
 
 	public void start() {
-		System.out.println("Starting server");
-		if (thrd == null) {
-			thrd = new Thread(this);
-			thrd.start();
+		this.run = true;
+		System.out.printf(">> Server started\n");
+		if (this.thrdCleaner == null) {
+			this.thrdCleaner = new Thread() {
+				public void run() {
+					clean();
+				}
+			};
+			this.thrdCleaner.start();
+		}
+		if (this.thrd == null) {
+			this.thrd = new Thread(this);
+			this.thrd.start();
 		}
 	}
 
 	public void stop() {
-		run = false;
+		this.run = false;
+	}
+
+	private void clean() {
+		ClientMngr clientMngr;
+
+		while (this.run) {
+			if (clientDisconnected.get()) {
+				clientDisconnected.set(false);
+				System.out.printf(">> Removing disconnected clients...\n");
+
+				for (Iterator<Map.Entry<Integer, ClientMngr>> it = this.clientPool.entrySet().iterator(); it
+						.hasNext();) {
+					clientMngr = it.next().getValue();
+
+					if (!clientMngr.isRunning()) {
+						int id = clientMngr.getId();
+						it.remove();
+						System.out.printf(">> Client removed: #%d.\t(%d remaining)\n", id, this.clientPool.size());
+					}
+				}
+
+				try {
+					Thread.sleep(CLEANER_DELAY);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 }

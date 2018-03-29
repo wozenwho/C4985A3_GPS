@@ -1,28 +1,29 @@
 package server.tcp;
 
-import java.net.*;
-import java.util.Date;
 import java.io.*;
-import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.parsers.*;
+import java.net.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Date;
 
-import org.w3c.dom.*;
-import java.io.File;
+import com.opencsv.CSVWriter;
 
 public class ClientMngr implements Runnable {
-	private final String MSG_DISCONNECT = "disconnect";
+	private final String FILE_DATE_FORMAT = "yyMMdd";
+	private final String FILE_EXTENSION = ".csv";
+	private final String FILE_PATH_DIR = "./data_gps/";
+	private final String CSV_TIME_FORMAT = "yyyyMMdd HH:mm:ss";
+	private final String CSV_HEADER_ID = "Client ID";
+	private final String CSV_HEADER_IP = "IP";
+	private final String CSV_HEADER_NAME = "Name";
+	private final String CSV_HEADER_TIME = "Time";
+	private final String CSV_HEADER_LAT = "Latitude";
+	private final String CSV_HEADER_LNG = "Longitude";
+	private final String MSG_DISCONNECT = "sayonara";
+	private final String MSG_REQ_ID = "mydigits";
 	private final String MSG_DELIMITER = "/";
-	private final String FILE_PATH = "./gps.xml";
-	private final String XML_ELEMENT_PARENT = "clients";
-	private final String XML_ELEMENT_CHILD = "client";
-	private final String XML_ATTR_CHILD_ID = "ID";
-	private final String XML_ATTR_CHILD_IP = "IP";
-	private final String XML_ATTR_CHILD_NAME = "name";
-	private final String XML_ELEMENT_CONTENT = "GPS";
-	private final String XML_ATTR_CONTENT_TIME = "time";
-	private final String XML_CONTENT_DELIMITER = "/";
 
 	private Thread thrd;
 	private Socket socket;
@@ -35,14 +36,24 @@ public class ClientMngr implements Runnable {
 	private Date time;
 	private double lat;
 	private double lng;
+	private volatile AtomicBoolean clientDisconnected;
 
-	public ClientMngr(Socket socket, int id) {
+	public ClientMngr(Socket socket, int id, AtomicBoolean clientDisconnected) {
 		this.socket = socket;
 		this.id = id;
 		this.name = (socket.getRemoteSocketAddress().toString()).split("/")[0];
 		this.ip = (socket.getRemoteSocketAddress().toString()).split("/")[1];
+		this.clientDisconnected = clientDisconnected;
 	}
 
+	public int getId() {
+		return this.id;
+	}
+	
+	public boolean isRunning() {
+		return this.run;
+	}
+	
 	public void run() {
 		String msg;
 		String[] msgSplit;
@@ -50,32 +61,37 @@ public class ClientMngr implements Runnable {
 		try { // Get input/output stream
 			streamIn = new DataInputStream(socket.getInputStream());
 			streamOut = new DataOutputStream(socket.getOutputStream());
-			run = true;
 		} catch (IOException e) {
 			System.out.println("ClientMngr::run: " + e.toString());
-			run = false;
+			this.run = false;
 		}
 
-		while (run) {
+		while (this.run) {
 			try {
 				msg = streamIn.readUTF().toString(); // receive message
 
 				time = new Date();
-				System.out.printf("[Client #%d|%tT]: %s\n", this.id, time, msg);
+				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, msg);
 
 				if (msg.equals(MSG_DISCONNECT)) {
 					break;
+				} else if (msg.equals(MSG_REQ_ID)) {
+					streamOut.writeUTF(String.valueOf(this.id)); // send the client ID
+				} else if (msg.matches("^-{0,1}\\d+.{0,1}\\d+/{1}-{0,1}\\d+.{0,1}\\d+")) {
+					// message is a latitude or longitude
+					msgSplit = msg.split(MSG_DELIMITER);
+					lat = Double.parseDouble(msgSplit[0]);
+					lng = Double.parseDouble(msgSplit[1]);
+					if (!writeToCsv(this.id, this.ip, this.name, this.time, this.lat, this.lng)) {
+						System.out.printf("[Client #%d|%tT]: Failed to log the GPS\n", this.id, time);
+					}
 				}
 
-				msgSplit = msg.split(MSG_DELIMITER);
-				System.out.printf("%s %s\n", msgSplit[0], msgSplit[1]);
-				lat = Double.parseDouble(msgSplit[0]);
-				lng = Double.parseDouble(msgSplit[1]);
-
-				writeToXml(this.id, this.name, this.ip, this.time, this.lat, this.lng);
-				streamOut.writeUTF(msg); // echo message
 			} catch (EOFException eEOF) {
-				System.out.printf("Terminating client #%d (%s)\n", this.id, this.ip);
+				System.out.printf("[Client #%d|%tT]: disconnected\n", this.id, time);
+				break;
+			} catch (SocketException eSocket) {
+				System.out.printf("[Client #%d|%tT]: improper disconnection\n", this.id, time);
 				break;
 			} catch (Exception e) {
 				System.out.println("ClientMngr::run: " + e.toString());
@@ -90,10 +106,15 @@ public class ClientMngr implements Runnable {
 			System.out.println("ClientMngr::run: " + e.toString());
 			e.printStackTrace();
 		}
+		
+		this.run = false;
+		this.clientDisconnected.set(true);
 	}
 
 	public void start() {
-		System.out.printf("Starting client #%d (%s/%s)\n", this.id, this.name, this.ip);
+		this.run = true;
+		time = new Date();
+		System.out.printf("[Client #%d|%tT]: started\n", this.id, time);
 		if (thrd == null) {
 			thrd = new Thread(this);
 			thrd.start();
@@ -101,61 +122,59 @@ public class ClientMngr implements Runnable {
 	}
 
 	public void stop() {
-		run = false;
+		this.run = false;
 	}
+	
+	private synchronized boolean writeToCsv(int id, String ip, String name, Date time, double lat, double lng) {
+		DateFormat df;
+		Date today;
+		String filePathFull;
+		FileWriter fileWriter;
+		CSVWriter csvWriter;
+		File dir;
+		File file;
+		String[] record;
 
-	public boolean writeToXml(int id, String name, String ip, Date time, double lat, double lng) {
+		// Get and format today's date
+		df = new SimpleDateFormat(FILE_DATE_FORMAT);
+		today = Calendar.getInstance().getTime();
+		filePathFull = FILE_PATH_DIR + df.format(today) + FILE_EXTENSION;
+
 		try {
-			DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
-			Document doc = dBuilder.newDocument();
+			dir = new File(FILE_PATH_DIR);
+			// Creates directory if it doesn't exist
+			if (!dir.exists()) {
+				dir.mkdir();
+			}
 
-			// root element
-			Element rootElement = doc.createElement(XML_ELEMENT_PARENT);
-			doc.appendChild(rootElement);
+			file = new File(filePathFull);
+			// Creates file and add header if the file doesn't exist
+			if (!(file.exists() && !file.isDirectory())) {
+				file.createNewFile();
+				fileWriter = new FileWriter(filePathFull, true);
+				csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER,
+						CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.RFC4180_LINE_END);
+				record = new String[] { CSV_HEADER_ID, CSV_HEADER_IP, CSV_HEADER_NAME, CSV_HEADER_TIME, CSV_HEADER_LAT,
+						CSV_HEADER_LNG };
+				csvWriter.writeNext(record);
+				csvWriter.close();
+			}
 
-			// child element
-			Element childElement = doc.createElement(XML_ELEMENT_CHILD);
-			rootElement.appendChild(childElement);
+			// Format time stamp of received message
+			df = new SimpleDateFormat(CSV_TIME_FORMAT);
+			String timeFormatted = df.format(time);
 
-			// set attribute to element: ID
-			Attr attrId = doc.createAttribute(XML_ATTR_CHILD_ID);
-			attrId.setValue(String.valueOf(id));
-			childElement.setAttributeNode(attrId);
+			// Append record
+			fileWriter = new FileWriter(filePathFull, true);
+			csvWriter = new CSVWriter(fileWriter, CSVWriter.DEFAULT_SEPARATOR, CSVWriter.NO_QUOTE_CHARACTER,
+					CSVWriter.DEFAULT_ESCAPE_CHARACTER, CSVWriter.RFC4180_LINE_END);
+			record = new String[] { String.valueOf(id), ip, name, timeFormatted, String.valueOf(lat),
+					String.valueOf(lng) };
+			csvWriter.writeNext(record);
 
-			// set attribute to element: name
-			Attr attrName = doc.createAttribute(XML_ATTR_CHILD_NAME);
-			attrName.setValue(name);
-			childElement.setAttributeNode(attrName);
-
-			// set attribute to element: IP
-			Attr attrIp = doc.createAttribute(XML_ATTR_CHILD_IP);
-			attrIp.setValue(ip);
-			childElement.setAttributeNode(attrIp);
-
-			// GPS element
-			Element contentElement = doc.createElement(XML_ELEMENT_CONTENT);
-			Attr attrTime = doc.createAttribute(XML_ATTR_CONTENT_TIME);
-			attrTime.setValue(String.valueOf(time));
-			contentElement.setAttributeNode(attrTime);
-			String gps = String.valueOf(lat) + XML_CONTENT_DELIMITER + String.valueOf(lng);
-			contentElement.appendChild(doc.createTextNode(gps));
-			childElement.appendChild(contentElement);
-
-			// write the content into xml file
-			TransformerFactory transformerFactory = TransformerFactory.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
-			DOMSource source = new DOMSource(doc);
-			StreamResult result = new StreamResult(new File(FILE_PATH));
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-			transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-			transformer.transform(source, result);
-
-			// Output to console for testing
-			StreamResult consoleResult = new StreamResult(System.out);
-			transformer.transform(source, consoleResult);
+			csvWriter.close();
 		} catch (Exception e) {
-			System.out.println("ClientMngr::writeToXml: " + e.toString());
+			System.out.println("ClientMngr::writeToCsv: " + e.toString());
 			e.printStackTrace();
 			return false;
 		}
