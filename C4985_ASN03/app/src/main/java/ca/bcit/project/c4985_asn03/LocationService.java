@@ -11,6 +11,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Looper;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -113,7 +114,8 @@ public class LocationService extends Service implements LocationListener  {
         locationArr[1] ="" + location.getLongitude();
 
         Log.d("message: ", locationArr[0] + "/" + locationArr[1]);
-        new ServerSend().execute(locationArr);
+        if(client.isConnected())
+            new ServerSend().execute(locationArr);
     }
 
     public void onProviderDisabled(String provider)
@@ -136,6 +138,13 @@ public class LocationService extends Service implements LocationListener  {
         protected Void doInBackground(Void ... params)
         {
             boolean ret = client.connect(ip);
+            if(ret == false)
+            {
+                Intent broad = new Intent();
+                broad.setAction("CONN_FAILED");
+                LocalBroadcastManager.getInstance(LocationService.this).sendBroadcast(broad);
+                stopSelf();
+            }
             return null;
         }
     }

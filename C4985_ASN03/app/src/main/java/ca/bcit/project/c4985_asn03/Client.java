@@ -30,6 +30,7 @@ public class Client {
     DataOutputStream out;
     Context context;
     Integer android_id;
+    boolean connected = false;
 
     public Client()
     {
@@ -52,6 +53,7 @@ public class Client {
             socket = new Socket(ipAddr, PORT_NO);
             opToServer = socket.getOutputStream();
             out = new DataOutputStream(opToServer);
+            connected = true;
             return true;
         }
         catch (IOException e)
@@ -81,7 +83,8 @@ public class Client {
     {
         try
         {
-            socket.close();
+            if(socket != null)
+                socket.close();
             return true;
         }
         catch (IOException e)
@@ -90,6 +93,11 @@ public class Client {
             return false;
         }
 
+    }
+
+    public boolean isConnected()
+    {
+        return connected;
     }
 
 }
