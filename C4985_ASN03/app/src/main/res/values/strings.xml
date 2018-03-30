@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">C4985_ASN03</string>
+    <string name="ipText">IP Address</string>
+    <string name="ipHint">Enter a dotted ip</string>
+    <string name="portText">Port</string>
+    <string name="defaultPort">42069</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+</resources>

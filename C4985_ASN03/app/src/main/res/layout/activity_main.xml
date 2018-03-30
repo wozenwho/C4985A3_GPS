@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    tools:context="ca.bcit.project.c4985_asn03.MainActivity">
+
+
+
+    <TextView
+        android:id="@+id/ipText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/ipText"
+        android:textSize="20sp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"/>
+    <EditText
+        android:id="@+id/ipEdit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:inputType="text"
+        android:hint="@string/ipHint"
+        android:layout_below="@id/ipText"/>
+
+    <TextView
+        android:id="@+id/portText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/portText"
+        android:textSize="20sp"
+        android:layout_below="@id/ipEdit"/>
+
+    <EditText
+        android:id="@+id/portEdit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        android:text="@string/defaultPort"
+        android:layout_below="@id/portText"/>
+
+    <Button
+        android:id="@+id/connect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/connect"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/portEdit"/>
+
+    <Button
+        android:id="@+id/disconnect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/disconnect"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/connect"/>
+
+    <TextView
+        android:id="@+id/locationText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/disconnect"/>
+
+    <TextView
+        android:id="@+id/countText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_below="@id/locationText"/>
+
+
+
+</RelativeLayout>
