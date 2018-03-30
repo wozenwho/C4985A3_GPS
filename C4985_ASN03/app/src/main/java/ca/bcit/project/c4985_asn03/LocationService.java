@@ -1,6 +1,6 @@
 package ca.bcit.project.c4985_asn03;
 
-import android.app.IntentService;
+
 import android.app.Service;
 import android.content.Intent;
 import android.location.Criteria;
@@ -10,10 +10,8 @@ import android.location.LocationManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Looper;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.TextView;
 
 import java.util.List;
 
@@ -38,7 +36,6 @@ public class LocationService extends Service implements LocationListener  {
     public void onCreate()
     {
         super.onCreate();
-        Log.d("yo", "got in create");
 
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
@@ -59,12 +56,12 @@ public class LocationService extends Service implements LocationListener  {
 
         if (!enabledProviders.isEmpty()) {
             for (String enabledProvider : enabledProviders) {
-                //stringBuffer.append(enabledProvider).append(" ");
+
                 try {
-                    locationManager.requestLocationUpdates(enabledProvider,0,0, this, null);
-                    //Log.d("good", "got past update");
+                    locationManager.requestLocationUpdates(enabledProvider,5000,5, this, null);
+
                 } catch (SecurityException e) {
-                    Log.d("shit", "got in catch");
+
                 }
             }
         }
@@ -73,39 +70,13 @@ public class LocationService extends Service implements LocationListener  {
 
     public void onDestroy()
     {
-        Log.d("yo", "got in destroy");
+
         locationManager.removeUpdates(this);
         if(client != null)
             client.closeSocket();
         super.onDestroy();
     }
 
-    /*
-    protected void onHandleIntent(Intent intent)
-    {
-        Log.d("message: ", "started service");
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-
-        Criteria criteria = new Criteria ();
-        criteria.setAccuracy (Criteria.ACCURACY_COARSE);
-        while(true) {
-
-            enabledProviders = locationManager.getProviders(criteria, true);
-
-
-            if (!enabledProviders.isEmpty()) {
-                for (String enabledProvider : enabledProviders) {
-                    //stringBuffer.append(enabledProvider).append(" ");
-                    try {
-                        locationManager.requestSingleUpdate(enabledProvider, this, null);
-                        //Log.d("good", "got past update");
-                    } catch (SecurityException e) {
-                        Log.d("shit", "got in catch");
-                    }
-                }
-            }
-        }
-    }*/
 
     public void onLocationChanged(Location location)
     {
@@ -113,7 +84,6 @@ public class LocationService extends Service implements LocationListener  {
         locationArr[0] ="" + location.getLatitude();
         locationArr[1] ="" + location.getLongitude();
 
-        Log.d("message: ", locationArr[0] + "/" + locationArr[1]);
         if(client.isConnected())
             new ServerSend().execute(locationArr);
     }
