@@ -23,6 +23,8 @@ import java.util.List;
 public class LocationService extends Service implements LocationListener  {
 
     public LocationManager locationManager;
+    public Client client;
+    public String ip;
     List<String> enabledProviders;
 
 
@@ -36,11 +38,21 @@ public class LocationService extends Service implements LocationListener  {
     {
         super.onCreate();
         Log.d("yo", "got in create");
+
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
 
+        client = new Client();
+
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId)
+    {
+        ip = intent.getStringExtra("ip");
+        int port = intent.getIntExtra("port", -1);
+        new ServerConnection().execute();
         Criteria criteria = new Criteria ();
         criteria.setAccuracy (Criteria.ACCURACY_COARSE);
-
         enabledProviders = locationManager.getProviders(criteria, true);
 
 
@@ -55,12 +67,15 @@ public class LocationService extends Service implements LocationListener  {
                 }
             }
         }
+        return START_STICKY;
     }
 
     public void onDestroy()
     {
         Log.d("yo", "got in destroy");
         locationManager.removeUpdates(this);
+        if(client != null)
+            client.closeSocket();
         super.onDestroy();
     }
 
@@ -93,10 +108,12 @@ public class LocationService extends Service implements LocationListener  {
 
     public void onLocationChanged(Location location)
     {
-        String locationStr;
-        locationStr = location.getLatitude() + "/" + location.getLongitude();
+        String[] locationArr = new String[2];
+        locationArr[0] ="" + location.getLatitude();
+        locationArr[1] ="" + location.getLongitude();
 
-        Log.d("message: ", locationStr);
+        Log.d("message: ", locationArr[0] + "/" + locationArr[1]);
+        new ServerSend().execute(locationArr);
     }
 
     public void onProviderDisabled(String provider)
@@ -114,6 +131,25 @@ public class LocationService extends Service implements LocationListener  {
 
     }
 
+    private class ServerConnection extends AsyncTask<Void, Void, Void>
+    {
+        protected Void doInBackground(Void ... params)
+        {
+            boolean ret = client.connect(ip);
+            return null;
+        }
+    }
+
+    private class ServerSend extends AsyncTask<String[], Void, Void>
+    {
+        protected Void doInBackground(String[] ... params)
+        {
+
+
+            boolean ret = client.send(params[0]);
+            return null;
+        }
+    }
 
 
 }

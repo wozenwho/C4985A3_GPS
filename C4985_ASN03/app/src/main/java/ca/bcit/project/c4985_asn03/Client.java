@@ -29,15 +29,15 @@ public class Client {
 
     public Client()
     {
-        try
-        {
-            opToServer = socket.getOutputStream();
-            out = new DataOutputStream(opToServer);
-        }
-        catch (IOException e)
-        {
-            e.printStackTrace();
-        }
+//        try
+//        {
+//            //opToServer = socket.getOutputStream();
+//            //out = new DataOutputStream(opToServer);
+//        }
+//        catch (IOException e)
+//        {
+//            e.printStackTrace();
+//        }
     }
 
     public boolean connect(String ipAddr)
@@ -45,6 +45,8 @@ public class Client {
         try
         {
             socket = new Socket(ipAddr, PORT_NO);
+            opToServer = socket.getOutputStream();
+            out = new DataOutputStream(opToServer);
             return true;
         }
         catch (IOException e)

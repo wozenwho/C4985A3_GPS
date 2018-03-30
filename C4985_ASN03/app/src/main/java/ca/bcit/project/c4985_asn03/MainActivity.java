@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},1);
+        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.INTERNET},1);
         //locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         TextView ctxt = (TextView)findViewById(R.id.countText);
         ctxt.setText("" + count);
@@ -53,7 +54,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 {
 
                 }
-                startService(new Intent(MainActivity.this, LocationService.class));
+                Intent serviceIntent = new Intent(MainActivity.this, LocationService.class);
+                serviceIntent.putExtra("ip", ip);
+                serviceIntent.putExtra("port", port);
+                startService(serviceIntent);
 
 
 
