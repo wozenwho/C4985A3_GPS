@@ -1,12 +1,14 @@
 package ca.bcit.project.c4985_asn03;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,6 +25,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     List<String> enabledProviders;
     boolean connected = false;
     int count = 0;
+    public static String androidID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +38,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         TextView ctxt = (TextView)findViewById(R.id.countText);
         ctxt.setText("" + count);
         Button connect = (Button)findViewById(R.id.connect);
+
+        androidID = Settings.Secure.getString(this.getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+
         connect.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -1,16 +1,20 @@
 package ca.bcit.project.c4985_asn03;
 import android.app.Activity;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.content.Context;
+import android.provider.Settings.Secure;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
+
 
 
 /**
@@ -25,7 +29,7 @@ public class Client {
     OutputStream opToServer;
     DataOutputStream out;
     Context context;
-
+    int android_id;
 
     public Client()
     {
@@ -38,6 +42,7 @@ public class Client {
 //        {
 //            e.printStackTrace();
 //        }
+        android_id = MainActivity.androidID.hashCode();
     }
 
     public boolean connect(String ipAddr)
@@ -60,7 +65,7 @@ public class Client {
     {
         try
         {
-            out.writeUTF(coordinates[0] + coordinates[1]);
+            out.writeUTF(android_id + '/' + coordinates[0] + '/' +  coordinates[1]);
             return true;
 
         }
