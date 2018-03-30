@@ -29,7 +29,7 @@ public class Client {
     OutputStream opToServer;
     DataOutputStream out;
     Context context;
-    int android_id;
+    Integer android_id;
 
     public Client()
     {
@@ -65,7 +65,8 @@ public class Client {
     {
         try
         {
-            out.writeUTF(android_id + '/' + coordinates[0] + '/' +  coordinates[1]);
+            String outStr = android_id.toString() + '/' + coordinates[0] + '/' + coordinates[1];
+            out.writeUTF(outStr);
             return true;
 
         }
