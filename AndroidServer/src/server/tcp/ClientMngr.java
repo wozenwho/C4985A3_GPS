@@ -22,27 +22,25 @@ public class ClientMngr implements Runnable {
 	private final String CSV_HEADER_LAT = "Latitude";
 	private final String CSV_HEADER_LNG = "Longitude";
 	private final String MSG_DISCONNECT = "sayonara";
-	private final String MSG_REQ_ID = "mydigits";
 	private final String MSG_DELIMITER = "/";
 
 	private Thread thrd;
 	private Socket socket;
-	private int id;
 	private String name;
 	private String ip;
+	private int id;
 	private DataInputStream streamIn;
-	private DataOutputStream streamOut;
 	private boolean run;
 	private Date time;
 	private double lat;
 	private double lng;
 	private volatile AtomicBoolean clientDisconnected;
 
-	public ClientMngr(Socket socket, int id, AtomicBoolean clientDisconnected) {
+	public ClientMngr(Socket socket, AtomicBoolean clientDisconnected) {
 		this.socket = socket;
-		this.id = id;
 		this.name = (socket.getRemoteSocketAddress().toString()).split("/")[0];
 		this.ip = (socket.getRemoteSocketAddress().toString()).split("/")[1];
+		this.id = -1;
 		this.clientDisconnected = clientDisconnected;
 	}
 
@@ -55,12 +53,12 @@ public class ClientMngr implements Runnable {
 	}
 
 	public void run() {
-		String msg;
-		String[] msgSplit;
+		String rawMsg;
+		String content;
+		String[] contentSplit;
 
 		try { // Get input/output stream
 			streamIn = new DataInputStream(socket.getInputStream());
-			streamOut = new DataOutputStream(socket.getOutputStream());
 		} catch (IOException e) {
 			System.out.println("ClientMngr::run: " + e.toString());
 			this.run = false;
@@ -68,20 +66,26 @@ public class ClientMngr implements Runnable {
 
 		while (this.run) {
 			try {
-				msg = streamIn.readUTF().toString(); // receive message
+				rawMsg = streamIn.readUTF().toString(); // receive message
+				
+				// Set client ID
+				if (this.id == -1) {
+					this.id = Integer.parseInt(rawMsg.split(MSG_DELIMITER, 2)[0]);
+					System.out.printf("[Client %s|%tT]: assigned with ID #%s\n", this.ip, time, this.id);
+				}
 
+				content = rawMsg.split(MSG_DELIMITER, 2)[1];
+				
 				time = new Date();
-				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, msg);
+				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, rawMsg);
 
-				if (msg.equals(MSG_DISCONNECT)) {
+				if (content.equals(MSG_DISCONNECT)) {
 					break;
-				} else if (msg.equals(MSG_REQ_ID)) {
-					streamOut.writeUTF(String.valueOf(this.id)); // send the client ID
-				} else if (msg.matches("^-{0,1}\\d+.{0,1}\\d+/{1}-{0,1}\\d+.{0,1}\\d+")) {
+				} else if (content.matches("^-{0,1}\\d+.{0,1}\\d+/{1}-{0,1}\\d+.{0,1}\\d+")) {
 					// message is a latitude or longitude
-					msgSplit = msg.split(MSG_DELIMITER);
-					lat = Double.parseDouble(msgSplit[0]);
-					lng = Double.parseDouble(msgSplit[1]);
+					contentSplit = content.split(MSG_DELIMITER, 2);
+					lat = Double.parseDouble(contentSplit[0]);
+					lng = Double.parseDouble(contentSplit[1]);
 					if (!writeToCsv(this.id, this.ip, this.name, this.time, this.lat, this.lng)) {
 						System.out.printf("[Client #%d|%tT]: Failed to log the GPS\n", this.id, time);
 					}
@@ -114,7 +118,7 @@ public class ClientMngr implements Runnable {
 	public void start() {
 		this.run = true;
 		time = new Date();
-		System.out.printf("[Client #%d|%tT]: started\n", this.id, time);
+		System.out.printf("[Client %s|%tT]: started\n", this.ip, time);
 		if (thrd == null) {
 			thrd = new Thread(this);
 			thrd.start();

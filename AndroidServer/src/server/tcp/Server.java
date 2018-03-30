@@ -52,7 +52,7 @@ public class Server implements Runnable {
 
 	public void run() {
 		Socket cliSocket;
-		int id;
+		int key;
 		ClientMngr clientMngr;
 
 		System.out.printf(">> Listening on port: %d\n", this.sockListen.getLocalPort());
@@ -65,13 +65,13 @@ public class Server implements Runnable {
 
 				cliSocket = this.sockListen.accept(); // Accept connection
 
-				// Generate client ID
-				while (this.clientPool.containsKey(id = this.random.nextInt(MAX_NUM_CLI))) {
+				// Generate a hash key
+				while (this.clientPool.containsKey(key = this.random.nextInt(MAX_NUM_CLI))) {
 				}
 
 				// Create and add client manager for the client
-				clientMngr = new ClientMngr(cliSocket, id, clientDisconnected);
-				this.clientPool.put(id, clientMngr);
+				clientMngr = new ClientMngr(cliSocket, clientDisconnected);
+				this.clientPool.put(key, clientMngr);
 
 				// Start the client
 				try {
@@ -80,7 +80,7 @@ public class Server implements Runnable {
 				} catch (Exception e) { // Client failed to start
 					System.out.println("ConnManager::run: " + e.toString());
 					clientMngr.stop(); // Stop the client manager
-					this.clientPool.remove(id); // remove the client manager
+					this.clientPool.remove(key); // remove the client manager
 				}
 
 			} catch (SocketTimeoutException eSocketTimeout) {
@@ -108,7 +108,7 @@ public class Server implements Runnable {
 		if (this.thrdCleaner == null) {
 			this.thrdCleaner = new Thread() {
 				public void run() {
-					clean();
+					cleanPool();
 				}
 			};
 			this.thrdCleaner.start();
@@ -123,7 +123,7 @@ public class Server implements Runnable {
 		this.run = false;
 	}
 
-	private void clean() {
+	private void cleanPool() {
 		ClientMngr clientMngr;
 
 		while (this.run) {

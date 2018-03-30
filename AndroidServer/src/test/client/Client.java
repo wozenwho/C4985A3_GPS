@@ -1,6 +1,7 @@
 package test.client;
 
 import java.net.*;
+import java.util.Random;
 
 import javax.swing.plaf.SliderUI;
 
@@ -24,7 +25,7 @@ public class Client {
 			Socket client = new Socket(serverName, port); // create socket
 			System.out.println("Successful connection to: " + client.getRemoteSocketAddress());
 
-			int i = 0;
+			int i = 1;
 			while (i < 10) {
 				// Get console input
 				// BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
@@ -34,8 +35,9 @@ public class Client {
 				// break;
 				// }
 
-				ClientString = "122." + i++;
-				ClientString += "/" + ClientString;
+				ClientString = String.valueOf((new Random()).nextInt(1000));
+				ClientString += "/" + "122." + i;
+				ClientString += "/" + "122." + i++;
 
 				// Send client string to server
 				OutputStream outToServer = client.getOutputStream();

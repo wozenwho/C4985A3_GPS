@@ -6,21 +6,19 @@ import java.io.InputStreamReader;
 
 public class Main {
 	private static final double PROGRAM_VERSION = 1.0;
-	private static final String PROGRAM_TERMINATION_CODE = "q";
+	private static final String PROGRAM_TERMINATION = "q";
 	private static final int PORT_SVR = 42069;
 	private static final int TIMEOUT_CONN = 3000; // milliseconds
 
 	private static Server server = new Server();
 
 	public static void main(String[] args) {
-		Thread thrdTerminator;
-
 		System.out.printf("\n");
 		System.out.printf("==========================================\n");
 		System.out.printf("==== Android Client GPS Server v.%.2f ====\n", PROGRAM_VERSION);
 		System.out.printf("==========================================\n");
 		System.out.printf("\n");
-		System.out.printf(">> Type \"%s\" to interrupt and terminate.\n", PROGRAM_TERMINATION_CODE);
+		System.out.printf(">> Type \"%s\" to interrupt and terminate.\n", PROGRAM_TERMINATION);
 
 		if (!server.createSocket(PORT_SVR)) {
 			return;
@@ -32,15 +30,6 @@ public class Main {
 
 		server.start();
 
-		thrdTerminator = new Thread() {
-			public void run() {
-				inputListener();
-			}
-		};
-		thrdTerminator.start();
-	}
-
-	private static void inputListener() {
 		String inputStr;
 		BufferedReader input;
 
@@ -50,7 +39,7 @@ public class Main {
 				input = new BufferedReader(new InputStreamReader(System.in));
 				inputStr = input.readLine();
 
-				if (inputStr.equals(PROGRAM_TERMINATION_CODE)) {
+				if (inputStr.equals(PROGRAM_TERMINATION)) {
 					server.stop();
 					System.out.printf(">> Terminating server...\n");
 					break;
