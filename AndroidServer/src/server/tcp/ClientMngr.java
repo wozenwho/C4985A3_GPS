@@ -40,6 +40,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Date;
 
 public class ClientMngr implements Runnable {
+	private final int TIMEOUT_RECV = 100; // milliseconds
+	private final int TIMEOUT_SOCKET = 60000; // milliseconds
 	private final String FILE_DATE_FORMAT = "yyMMdd";
 	private final String FILE_EXTENSION = ".csv";
 	private final String FILE_PATH_DIR = "./data_gps/";
@@ -182,36 +184,43 @@ public class ClientMngr implements Runnable {
 
 		while (this.run) {
 			try {
-				rawMsg = streamIn.readUTF().toString(); // receive message
-				
+				if (streamIn.available() > 0) {
+					rawMsg = streamIn.readUTF().toString(); // receive message
+				} else if (((new Date()).getTime() - this.time.getTime()) > TIMEOUT_SOCKET) {
+					break;
+				} else {
+					Thread.sleep(TIMEOUT_RECV);
+					continue;
+				}
+
 				// Set client ID
 				if (this.id == -1) {
 					this.id = Integer.parseInt(rawMsg.split(MSG_DELIMITER, 2)[0]);
-					System.out.printf("[Client %s|%tT]: assigned with ID #%s\n", this.ip, time, this.id);
+					System.out.printf("[Client %s|%tT]: assigned with ID #%s\n", this.ip, this.time, this.id);
 				}
 
 				content = rawMsg.split(MSG_DELIMITER, 2)[1];
-				
-				time = new Date();
-				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, content);
+
+				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, new Date(), content);
 
 				if (content.equals(MSG_DISCONNECT)) {
 					break;
 				} else if (content.matches("^-{0,1}\\d+.{0,1}\\d+/{1}-{0,1}\\d+.{0,1}\\d+")) {
 					// message is a latitude or longitude
+					this.time = new Date();
 					contentSplit = content.split(MSG_DELIMITER, 2);
 					lat = Double.parseDouble(contentSplit[0]);
 					lng = Double.parseDouble(contentSplit[1]);
 					if (!writeToCsv(this.id, this.ip, this.name, this.time, this.lat, this.lng)) {
-						System.out.printf("[Client #%d|%tT]: Failed to log the GPS\n", this.id, time);
+						System.out.printf("[Client #%d|%tT]: Failed to log the GPS\n", this.id, this.time);
 					}
 				}
 
 			} catch (EOFException eEOF) {
-				System.out.printf("[Client #%d|%tT]: disconnected\n", this.id, time);
+				System.out.printf("[Client #%d|%tT]: disconnected\n", this.id, this.time);
 				break;
 			} catch (SocketException eSocket) {
-				System.out.printf("[Client #%d|%tT]: improper disconnection\n", this.id, time);
+				System.out.printf("[Client #%d|%tT]: improper disconnection\n", this.id, this.time);
 				break;
 			} catch (Exception e) {
 				System.out.println("ClientMngr::run: " + e.toString());
@@ -252,8 +261,8 @@ public class ClientMngr implements Runnable {
 	------------------------------------------------------------------*/
 	public void start() {
 		this.run = true;
-		time = new Date();
-		System.out.printf("[Client %s|%tT]: started\n", this.ip, time);
+		this.time = new Date();
+		System.out.printf("[Client %s|%tT]: started\n", this.ip, this.time);
 		if (thrd == null) {
 			thrd = new Thread(this);
 			thrd.start();

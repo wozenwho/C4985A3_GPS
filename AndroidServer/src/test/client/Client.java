@@ -28,36 +28,36 @@ public class Client {
 			int i = 1;
 			while (i < 10) {
 				// Get console input
-				// BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
-				// ClientString = input.readLine();
-				// if (ClientString.equals("sayonara")) {
-				// client.close();
-				// break;
-				// }
+				BufferedReader input = new BufferedReader(new InputStreamReader(System.in));
+				ClientString = input.readLine();
+				if (ClientString.equals("sayonara")) {
+					client.close();
+					break;
+				}
 
-				ClientString = String.valueOf((new Random()).nextInt(1000));
-				ClientString += "/" + "122." + i;
-				ClientString += "/" + "122." + i++;
+				// ClientString = String.valueOf((new Random()).nextInt(1000));
+				// ClientString += "/" + "122." + i;
+				// ClientString += "/" + "122." + i++;
 
 				// Send client string to server
 				OutputStream outToServer = client.getOutputStream();
 				DataOutputStream out = new DataOutputStream(outToServer);
 				out.writeUTF(ClientString);
 
-				if (ClientString.equals("mydigits")) {
-					// Get the echo from server
-					InputStream inFromServer = client.getInputStream();
-					DataInputStream in = new DataInputStream(inFromServer);
-					System.out.println("Server Echo: " + in.readUTF());
-				}
+				// if (ClientString.equals("mydigits")) {
+				// // Get the echo from server
+				// InputStream inFromServer = client.getInputStream();
+				// DataInputStream in = new DataInputStream(inFromServer);
+				// System.out.println("Server Echo: " + in.readUTF());
+				// }
 
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+				// try {
+				// Thread.sleep(1000);
+				// } catch (InterruptedException e) {
+				// e.printStackTrace();
+				// }
 			}
-			
+
 			client.close();
 		}
 
