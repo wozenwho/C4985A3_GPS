@@ -1,3 +1,34 @@
+/*----------------------------------------------------------------------
+-- SOURCE FILE:	ClientMngr.java	    - File that contains a definition of
+--									  the client manager class to manage
+--									  client I/O.
+--
+-- PROGRAM:		AndroidServer
+--
+-- FUNCTIONS:
+--				public ClientMngr(Socket socket, AtomicBoolean
+--								  clientDisconnected)
+--				public int getId(void)
+--				public boolean isRunning(void)
+--				public void run(void)
+--				public void start(void)
+--				public void stop(void)
+--				private synchronized boolean writeToCsv(int id, String ip,
+--				String name, Date time, double lat, double lng)
+--
+-- DATE:		March 30, 2018
+--
+-- DESIGNER:	Jeremy Lee
+--
+-- PROGRAMMER:	Jeremy Lee
+--
+-- NOTES:
+-- This is a class definition for client I/O management.
+-- Contains the client manager class. The client manager class is for
+-- managing incoming data from a client, sending data to it, and processing
+-- received data (writing to a file). The driver function is meant to be
+-- run on a separate thread.
+----------------------------------------------------------------------*/
 package server.tcp;
 
 import java.io.*;
@@ -36,6 +67,31 @@ public class ClientMngr implements Runnable {
 	private double lng;
 	private volatile AtomicBoolean clientDisconnected;
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	ClientMngr
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public ClientMngr(Socket socket, AtomicBoolean
+	--								  clientDisconnected)
+	--
+	-- ARGUMENT:    socket            	- A socket on which the client is
+	--									  connected to the server (a Server
+	--									  class instance).
+	--              clientDisconnected  - A cross-thread boolean reference
+	--									  to indicate this instance's
+	--									  disconnection.
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- A Client Manager class constructor to instantiate an instance.
+	-- Sets values of this instance's member variables.
+	------------------------------------------------------------------*/
 	public ClientMngr(Socket socket, AtomicBoolean clientDisconnected) {
 		this.socket = socket;
 		this.name = (socket.getRemoteSocketAddress().toString()).split("/")[0];
@@ -44,14 +100,74 @@ public class ClientMngr implements Runnable {
 		this.clientDisconnected = clientDisconnected;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	getId
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public int getId(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    int					- This client manager's ID.
+	--
+	-- NOTES:
+	-- Gets the client ID of this Client Manager instance.
+	------------------------------------------------------------------*/
 	public int getId() {
 		return this.id;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	isRunning
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public boolean isRunning(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    boolean				- True if this client manager's
+	--									  run function is running. False
+	--									  otherwise.
+	--
+	-- NOTES:
+	-- Gets the value of the flag (boolean) to stop this Client Manager
+	-- instance.
+	------------------------------------------------------------------*/
 	public boolean isRunning() {
 		return this.run;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	run
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void run(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- Driver for the Client Manager class. Keeps on receiving client
+	-- data on the client socket.
+	-- This function is meant to be run concurrently on a separate thread
+	-- for continuous data reception from a client.
+	------------------------------------------------------------------*/
 	public void run() {
 		String rawMsg;
 		String content;
@@ -115,6 +231,25 @@ public class ClientMngr implements Runnable {
 		this.clientDisconnected.set(true);
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	start
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void start(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- A function to be called by a Server instance to start this Client
+	-- Manager instance. Invokes the run function on a separate thread.
+	------------------------------------------------------------------*/
 	public void start() {
 		this.run = true;
 		time = new Date();
@@ -125,10 +260,58 @@ public class ClientMngr implements Runnable {
 		}
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	stop
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void stop(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- Sets the flag to stop this Client Manager instance to false.
+	-- Call this function to stop a client manager instance.
+	------------------------------------------------------------------*/
 	public void stop() {
 		this.run = false;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	writeToCsv
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	private synchronized boolean writeToCsv(int id,
+	--				String ip, String name, Date time, double lat, double
+	--				lng)
+	--
+	-- ARGUMENT:    id            		- ID of a Client Manager instance.
+	--				ip            		- IP address of a client.
+	--				name            	- Name of a client device.
+	--				time            	- Time stamp of data reception.
+	--				lat            		- Latitude in received GPS data.
+	--				lng            		- Longitude in received GPS data.
+	--
+	-- RETURNS:	    boolean				- True if the input is written
+	--									  on the file successfully. False
+	--									  otherwise.
+	--
+	-- NOTES:
+	-- Writes the given information (arguments) to a file in CSV format.
+	-- Note that the CSV file is not supposed to be opened or this function
+	-- will fail to write to that file and return false.
+	------------------------------------------------------------------*/
 	private synchronized boolean writeToCsv(int id, String ip, String name, Date time, double lat, double lng) {
 		DateFormat df;
 		Date today;

@@ -1,3 +1,32 @@
+/*----------------------------------------------------------------------
+-- SOURCE FILE:	Server.java		    - File that contains a definition of
+--									  the server class to manage multiple
+--									  client connections.
+--
+-- PROGRAM:		AndroidServer
+--
+-- FUNCTIONS:
+--				public Server(void)
+--				public Boolean createSocket(int port)
+--				public Boolean setTimeout(int millisec)
+--				public void run(void)
+--				public void start(void)
+--				public void stop(void)
+--				private void cleanPool(void)
+--
+-- DATE:		March 30, 2018
+--
+-- DESIGNER:	Jeremy Lee
+--
+-- PROGRAMMER:	Jeremy Lee
+--
+-- NOTES:
+-- This is a class definition of the server class to manage multiple
+-- client connections.
+-- The Server class is for managing client connections and grouping them
+-- into a client connection pool. The driver function is meant to be run
+-- on a separate thread.
+----------------------------------------------------------------------*/
 package server.tcp;
 
 import java.net.*;
@@ -21,6 +50,25 @@ public class Server implements Runnable {
 	private boolean run;
 	private volatile AtomicBoolean clientDisconnected;
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	Server
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public Server(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- A Server class constructor to instantiate an instance.
+	-- Sets values of this instance's member variables.
+	------------------------------------------------------------------*/
 	public Server() {
 		this.random = new Random();
 		this.clientPool = new HashMap<Integer, ClientMngr>();
@@ -28,6 +76,29 @@ public class Server implements Runnable {
 		this.clientDisconnected = new AtomicBoolean(false);
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	createSocket
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public Boolean createSocket(int port)
+	--
+	-- ARGUMENT:    port            	- A port number to accept client
+	--									  connections on.
+	--
+	-- RETURNS:	    Boolean				- True if a socket is successfully
+	--									  created. False otherwise.
+	--
+	-- NOTES:
+	-- A wrapper function to create a socket to listen to client
+	-- connections on a specified port. This function must be called to
+	-- create a socket before running this client instance (the run
+	-- function).
+	------------------------------------------------------------------*/
 	public Boolean createSocket(int port) {
 		try {
 			this.sockListen = new ServerSocket(port);
@@ -38,6 +109,30 @@ public class Server implements Runnable {
 		return true;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	setTimeout
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public Boolean setTimeout(int millisec)
+	--
+	-- ARGUMENT:    millisec            - The amount of time to wait
+	--									  until a connection request
+	--									  from a client is received. In
+	--									  milliseconds
+	--
+	-- RETURNS:	    Boolean				- True is time out is successfully
+	--									  set. False otherwise.
+	--
+	-- NOTES:
+	-- A wrapper function to set timeout for the listener socket. Without
+	-- this function, the server will not pass the blocking code that
+	-- listens to client connections.
+	------------------------------------------------------------------*/
 	public Boolean setTimeout(int millisec) {
 		try {
 			this.sockListen.setSoTimeout(millisec);
@@ -50,6 +145,26 @@ public class Server implements Runnable {
 		return true;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	run
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void run(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- Driver for the Server class. Keeps on listening to client
+	-- connections on the listener socket. Creates and Starts a Client
+	-- Manager instance every time it accepts a connection.
+	------------------------------------------------------------------*/
 	public void run() {
 		Socket cliSocket;
 		int key;
@@ -102,6 +217,25 @@ public class Server implements Runnable {
 		System.out.printf(">> Server terminated\n");
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	start
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void start(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- A function to be called by external methods to start a Server
+	-- instance. Starts a client pool cleaner thread as well.
+	------------------------------------------------------------------*/
 	public void start() {
 		this.run = true;
 		System.out.printf(">> Server started\n");
@@ -119,16 +253,55 @@ public class Server implements Runnable {
 		}
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	stop
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	public void stop(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- Sets the flag to stop the Server instance to false.
+	------------------------------------------------------------------*/
 	public void stop() {
 		this.run = false;
 	}
 
+	/*------------------------------------------------------------------
+	-- FUNCTION:	cleanPool
+	--
+	-- DATE:		March 30, 2018
+	--
+	-- DESIGNER:	Jeremy Lee
+	--
+	-- PROGRAMMER:	Jeremy Lee
+	--
+	-- INTERFACE:	private void cleanPool(void)
+	--
+	-- ARGUMENT:    void
+	--
+	-- RETURNS:	    void
+	--
+	-- NOTES:
+	-- Checks if any Client Manager is disconnected. If there is any,
+	-- checks the client pool and removes all disconnected Client Manager
+	-- instances. The cross-thread boolean variable must be set to true
+	-- by a client manager to trigger a pool check.
+	------------------------------------------------------------------*/
 	private void cleanPool() {
 		ClientMngr clientMngr;
 
 		while (this.run) {
-			if (clientDisconnected.get()) {
-				clientDisconnected.set(false);
+			if (this.clientDisconnected.get()) {
+				this.clientDisconnected.set(false);
 				System.out.printf(">> Removing disconnected clients...\n");
 
 				for (Iterator<Map.Entry<Integer, ClientMngr>> it = this.clientPool.entrySet().iterator(); it
