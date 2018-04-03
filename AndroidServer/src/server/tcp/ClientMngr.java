@@ -77,7 +77,7 @@ public class ClientMngr implements Runnable {
 				content = rawMsg.split(MSG_DELIMITER, 2)[1];
 				
 				time = new Date();
-				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, rawMsg);
+				System.out.printf("[Client #%d|%tT]: \"%s\"\n", this.id, time, content);
 
 				if (content.equals(MSG_DISCONNECT)) {
 					break;
