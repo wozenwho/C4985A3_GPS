@@ -110,7 +110,7 @@ public class LocationService extends Service implements LocationListener  {
     public int onStartCommand(Intent intent, int flags, int startId)
     {
         ip = intent.getStringExtra("ip");
-        int port = intent.getIntExtra("port", -1);
+        portNo = intent.getIntExtra("port", -1);
         new ServerConnection().execute();
         Criteria criteria = new Criteria ();
         criteria.setAccuracy (Criteria.ACCURACY_COARSE);
