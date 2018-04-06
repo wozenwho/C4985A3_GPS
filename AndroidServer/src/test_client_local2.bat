@@ -1,2 +1,2 @@
 javac test/client/Client2.java
-java test.client.Client2 192.168.0.15 42069
+java test.client.Client2 127.0.0.1 42069
