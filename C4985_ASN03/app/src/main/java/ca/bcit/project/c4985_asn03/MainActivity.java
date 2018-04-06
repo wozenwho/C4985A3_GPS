@@ -1,3 +1,4 @@
+
 package ca.bcit.project.c4985_asn03;
 
 import android.Manifest;
@@ -15,12 +16,51 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+/**
+ * CLASS:       MainActivity
+ *
+ * FUNCTIONS: OnCreate()
+ *            OnResume()
+ *            OnPause()
+ *
+ * DATE:        Apr. 29, 2018
+ *
+ *
+ *
+ * DESIGNER:    Jeffrey Chou
+ *
+ * PROGRAMMER:  Jeffrey Chou
+ *
+ * NOTES:
+ * The GUI of the client app that grabs the data input by the user
+ * passes it to the to LocationService service
+ */
 
 public class MainActivity extends AppCompatActivity  {
 
     BroadcastReceive receiver;
     public static String androidID;
 
+
+    /**
+     * FUNCTION:    onCreate
+     *
+     * DATE:        Apr. 29, 2018
+     *
+     * REVISIONS:
+     *
+     * DESIGNER:    Jeffrey Chou
+     *
+     * PROGRAMMER:  Jeffrey Chou
+     *
+     * INTERFACE:   onCreate()
+     *
+     * RETURNS:     void
+     *
+     * NOTES:
+     * Initializes the gui and button listeners of the android app
+     *
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -40,21 +80,36 @@ public class MainActivity extends AppCompatActivity  {
 
                 EditText ipEdit = (EditText)findViewById(R.id.ipEdit);
                 EditText portEdit = (EditText)findViewById(R.id.portEdit);
-                String ip = null;
+                String ip;
                 int port = -1;
-                try {
-                    ip = ipEdit.getText().toString();
-                    port = Integer.parseInt(portEdit.getText().toString());
+                ip = ipEdit.getText().toString();
 
-                }
-                catch(NullPointerException e)
+                if(portEdit.getText().toString().trim().length() == 0)
                 {
-
+                    Toast.makeText(MainActivity.this, "No Port Input", Toast.LENGTH_SHORT).show();
+                    return;
                 }
+                port = Integer.parseInt(portEdit.getText().toString());
+
+
+
+                if(ip.isEmpty())
+                {
+                    Toast.makeText(MainActivity.this, "No IP Input", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                if(port < 0)
+                {
+                    Toast.makeText(MainActivity.this, "Not a valid Port", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+
                 Intent serviceIntent = new Intent(MainActivity.this, LocationService.class);
                 serviceIntent.putExtra("ip", ip);
                 serviceIntent.putExtra("port", port);
                 startService(serviceIntent);
+                Toast.makeText(MainActivity.this, "Started Location Service", Toast.LENGTH_SHORT).show();
                 Button connect = (Button)findViewById(R.id.connect);
                 connect.setEnabled(false);
 
@@ -75,16 +130,55 @@ public class MainActivity extends AppCompatActivity  {
         });
     }
 
+    /**
+     * FUNCTION:    onResume
+     *
+     * DATE:        Apr. 29, 2018
+     *
+     * REVISIONS:
+     *
+     * DESIGNER:    Jeffrey Chou
+     *
+     * PROGRAMMER:  Jeffrey Chou
+     *
+     * INTERFACE:   onResume()
+     *
+     * RETURNS:     void
+     *
+     * NOTES:
+     * Initializes the BroadcastReceiver to listen to messages from the location
+     * service
+     *
+     */
     protected void onResume()
     {
         super.onResume ();
 
-        IntentFilter filter = new IntentFilter("CONN_FAILED");
+        IntentFilter filter = new IntentFilter("COM_ERROR");
         receiver = new BroadcastReceive();
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, filter);
 
     }
 
+    /**
+     * FUNCTION:    onPause
+     *
+     * DATE:        Apr. 29, 2018
+     *
+     * REVISIONS:
+     *
+     * DESIGNER:    Jeffrey Chou
+     *
+     * PROGRAMMER:  Jeffrey Chou
+     *
+     * INTERFACE:   onPause()
+     *
+     * RETURNS:     void
+     *
+     * NOTES:
+     * Unregisters the broadcast receiver when the app loses focus
+     *
+     */
     protected void onPause()
     {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
@@ -96,7 +190,7 @@ public class MainActivity extends AppCompatActivity  {
     {
         public void onReceive(Context context, Intent intent)
         {
-            Toast.makeText(context, intent.getAction(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(context, intent.getAction() + intent.getStringExtra("msg"), Toast.LENGTH_SHORT).show();
             Button connect = (Button)findViewById(R.id.connect);
             connect.setEnabled(true);
         }

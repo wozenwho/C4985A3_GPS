@@ -104,11 +104,11 @@ public class Client {
      * This function creates the socket as well as the datastreams used to transmit
      * data through the socket.
      */
-    public boolean connect(String ipAddr)
+    public boolean connect(String ipAddr, int portNo)
     {
         try
         {
-            socket = new Socket(ipAddr, PORT_NO);
+            socket = new Socket(ipAddr, portNo);
             opToServer = socket.getOutputStream();
             out = new DataOutputStream(opToServer);
             connected = true;
