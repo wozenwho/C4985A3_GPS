@@ -58,19 +58,6 @@
         android:layout_centerHorizontal="true"
         android:layout_below="@id/connect"/>
 
-    <TextView
-        android:id="@+id/locationText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/disconnect"/>
-
-    <TextView
-        android:id="@+id/countText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_centerHorizontal="true"
-        android:layout_below="@id/locationText"/>
 
 
 
